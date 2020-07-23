@@ -1,8 +1,8 @@
-#define _GNU_SOURCE
+//#define _GNU_SOURCE
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <arpa/inet.h>
+//#include <arpa/inet.h>
 
 #define BUF_LEN 10240000
 #define MAX_SAMPLE_NUM 102400
@@ -32,6 +32,49 @@ int chunk_offset_tab[MAX_CHUNK_NUM];
 int chunk_num;
 int sample_size_tab[MAX_SAMPLE_NUM];
 int sample_num;
+
+typedef unsigned int uint32_t;
+static const int _test = 0x1234;
+static const char * _ptest = (char *)&_test;
+
+/* htonl */
+uint32_t htonl(uint32_t host32)
+{
+        if(*_ptest == 0x12)
+                return host32;
+        return ((host32 & 0xff) << 24) | ((host32 & 0xff00) << 8)
+                | ((host32 & 0xff0000) >> 8) | ((host32 & 0xff000000) >> 24);
+}
+
+void *memmem(const void *haystack, size_t n, const void *needle, size_t m)
+{
+        if (m > n || !m || !n)
+                return NULL;
+        if (m > 1) {
+        //if (__builtin_expect((m > 1), 1)) {
+                const unsigned char*  y = (const unsigned char*) haystack;
+                const unsigned char*  x = (const unsigned char*) needle;
+                size_t                j = 0;
+                size_t                k = 1, l = 2;
+                if (x[0] == x[1]) {
+                        k = 2;
+                        l = 1;
+                }
+                while (j <= n-m) {
+                        if (x[1] != y[j+1]) {
+                                j += k;
+                        } else {
+                                if (!memcmp(x+2, y+j+2, m-2) && x[0] == y[j])
+                                        return (void*) &y[j];
+                                j += l;
+                        }
+                }
+        } else {
+                /* degenerate case */
+                return memchr(haystack, ((unsigned char*)needle)[0], n);
+        }
+        return NULL;
+}
 
 void get_adts_head(char head[7], int len)
 {
@@ -269,7 +312,7 @@ void adts_cb(int offset, int len, FILE* fp)
 void copy_raw_to_adts()
 {
     char name[64];
-    sprintf(name, "%s.adts", filename);
+    sprintf(name, "%s.aac", filename);
     FILE* fp = fopen(name, "wb");
     if (!fp)
         return;
